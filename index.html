@@ -1,7 +1,4 @@
----
-import TokenViewer from "../components/TokenViewer.jsx";
----
-
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -11,6 +8,7 @@ import TokenViewer from "../components/TokenViewer.jsx";
   </head>
   <body>
     <noscript><p>JavaScript is required for the local tokenizer controls. No model API is used.</p></noscript>
-    <TokenViewer client:load />
+    <div id="root"><main class="explorer"><h1>Token Viewer</h1><p role="status">Loading the local GPT-2 vocabulary explorer. JavaScript is required; if this message remains, reload or check that site scripts are enabled. No model API is used.</p></main></div>
+    <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
