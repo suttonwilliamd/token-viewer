@@ -1,5 +1,7 @@
 # build output
 dist/
+# local browser test evidence
+artifacts/
 # generated types
 .astro/
 
