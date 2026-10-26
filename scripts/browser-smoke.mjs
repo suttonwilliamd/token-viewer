@@ -35,7 +35,32 @@ try {
     return route.continue();
   });
   await page.goto(origin, { waitUntil: 'networkidle' });
+  assert.deepEqual(pageErrors, []);
   const id = page.getByLabel('Token ID', { exact: true });
+  await id.waitFor({ state: 'visible' });
+  // Exercise sequential navigation and native activation, not synthetic clicks.
+  await page.keyboard.press('Tab');
+  assert.equal(await id.evaluate(el => document.activeElement === el), true);
+  await page.keyboard.press('Tab');
+  assert.equal(await page.locator('#token-slider').evaluate(el => document.activeElement === el), true);
+  await page.keyboard.press('Tab');
+  assert.equal(await page.locator('#encode-text').evaluate(el => document.activeElement === el), true);
+  await page.keyboard.press('Tab');
+  const nativeEncode = page.getByRole('button', { name: 'Encode', exact: true });
+  assert.equal(await nativeEncode.evaluate(el => document.activeElement === el), true);
+  await page.keyboard.press('Shift+Tab');
+  assert.equal(await page.locator('#encode-text').evaluate(el => document.activeElement === el), true);
+  await page.locator('#encode-text').fill('hello');
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Enter');
+  assert.equal(await page.getByLabel('Complete token-ID list', { exact: true }).textContent(), '[31373]');
+  await page.keyboard.press('Shift+Tab');
+  await page.locator('#encode-text').fill('');
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Space');
+  assert.equal(await page.getByLabel('Complete token-ID list', { exact: true }).textContent(), '[]');
+  checks.push('sequential Tab / Shift+Tab and native Encode Enter / Space');
+  await page.reload({ waitUntil: 'networkidle' });
   await id.fill('50256');
   await page.waitForFunction(() => document.querySelector('.token-output').textContent === '<|endoftext|>');
   for (const invalid of ['', 'NaN', '1.5', '1e2', '-1', '50257', ' 1']) {

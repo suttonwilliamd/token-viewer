@@ -1,6 +1,6 @@
 # Token Viewer
 
-A standalone, local educational explorer for the **GPT-2 / r50k-compatible byte-pair vocabulary**. Built with Astro and React, using `@nem035/gpt-3-encoder` 1.1.7. Its package name is historical: this is **not** a current GPT-4/5/6 tokenizer, model API, billing tool, or pricing estimator.
+A standalone, local educational explorer for the **GPT-2 / r50k-compatible byte-pair vocabulary**. Built with React and Vite (static HTML entry; no framework server), using `@nem035/gpt-3-encoder` 1.1.7. Its package name is historical: this is **not** a current GPT-4/5/6 tokenizer, model API, billing tool, or pricing estimator.
 
 ## What it does
 
@@ -13,25 +13,24 @@ The tokenizer's installed source uses GPT-2's byte-to-Unicode mapping, BPE merge
 
 ## Privacy and runtime
 
-This builds to static files in `dist/`; there is no application server runtime or model API. Browser JavaScript and bundled vocabulary are required. User text is not sent to a network service, stored in browser storage, or used for analytics. Drafts/results and the upstream tokenizer's BPE cache live in page memory until reload/close. Site assets still require their initial download. No text is inserted as HTML.
+This builds to static files in `dist/`; there is no application server runtime or model API. Browser JavaScript and bundled vocabulary are required. The retired Astro shell previously pre-rendered the controls; the static React entry now shows a loading message and a no-JavaScript explanation until client rendering. There is no prehydrated application HTML. If scripts fail to load, the loading guidance remains rather than interactive controls. User text is not sent to a network service, stored in browser storage, or used for analytics. Drafts/results and the upstream tokenizer's BPE cache live in page memory until reload/close. Site assets still require their initial download. No text is inserted as HTML.
 
-This is deliberately modest: no batch processing, file import, modern-model selection, price tables, hosting configuration, or deployment automation. The full vocabulary produces a relatively large browser bundle (~1.28 MB minified / 590 KB gzip in the measured Linux build); the build emits a chunk-size warning. The 2048-unit limit bounds individual requests, not a performance or memory guarantee for indefinite page use. Encoding remains synchronous.
+This is deliberately modest: no batch processing, file import, modern-model selection, price tables, hosting configuration, or deployment automation. The full vocabulary produces a relatively large browser bundle (~1.48 MB minified / 626 KB gzip in the measured Vite Linux build); the build emits a chunk-size warning. The 2048-unit limit bounds individual requests, not a performance or memory guarantee for indefinite page use. Encoding remains synchronous.
 
 ## Windows-first setup (PowerShell)
 
-Use **Node.js 22 LTS, at least 22.12.0**, and npm. Modern browsers must support Unicode property escapes and TextEncoder/TextDecoder. Node 14 is not supported by the current Astro toolchain.
+Use **Node.js 22 LTS, at least 22.12.0**, and npm. Modern browsers must support Unicode property escapes and TextEncoder/TextDecoder. Vite 8.3.5 declares Node `^20.19.0 || >=22.12.0`; this project requires Node 22.12.0 or newer. Node 14 is unsupported.
 
 ```powershell
 git clone https://github.com/suttonwilliamd/token-viewer.git
 Set-Location token-viewer
-$env:ASTRO_TELEMETRY_DISABLED = "1"
 npm ci
 npm test
 npm run build
 npm run dev -- --host 127.0.0.1
 ```
 
-Open `http://localhost:4321`. Stop with Ctrl+C. For a production-output local preview, use `npm run preview -- --host 127.0.0.1`. Equivalent commands work in an Ubuntu shell (`export ASTRO_TELEMETRY_DISABLED=1` instead of the PowerShell assignment). Keep development/preview servers loopback-only; they are not a production hosting recommendation.
+Open `http://localhost:4321`. Stop with Ctrl+C. For a production-output local preview, use `npm run preview -- --host 127.0.0.1`. Equivalent npm commands work in an Ubuntu shell. Keep development/preview servers loopback-only; they are not a production hosting recommendation.
 
 ## Tests and browser evidence
 
@@ -42,19 +41,12 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-`node:test` covers strict IDs, decoder/encoder error injection, real known token fixtures, emoji/multibyte text, empty input, maximum/oversize inputs, and stale state. The browser test opens only a short-lived loopback fixture serving the actual build, exercises real controls and keyboard focus, verifies the complete maximum-size ID list and 320px width, checks no page errors/external requests/storage, and writes four screenshots plus `results.json` to `artifacts/browser-smoke/`. It closes its browser/server on exit. Test only synthetic data: screenshots contain the test text. Playwright's browser download needs public network access; Linux may need preinstalled browser system dependencies.
+`node:test` covers strict IDs, decoder/encoder error injection, real known token fixtures, emoji/multibyte text, empty input, maximum/oversize inputs, and stale state. The browser test opens only a short-lived loopback fixture serving the actual build, exercises real controls, sequential Tab/Shift+Tab focus order and native Encode activation with Enter/Space, verifies the complete maximum-size ID list and 320px width, checks no page errors/external requests/storage, and writes four screenshots plus `results.json` to `artifacts/browser-smoke/`. It closes its browser/server on exit. Test only synthetic data: screenshots contain the test text. Playwright's browser download needs public network access; Linux may need preinstalled browser system dependencies.
 
-The GitHub workflow declares **Node 22 on Ubuntu and Windows**, running tests, build and actual Chromium smoke with uploaded screenshots. **Workflow presence is not evidence of Windows execution.** Local implementation verification was Linux Node 22.23.4 and headless Chromium only. Native Windows, physical mobile devices, screen readers and independent rendered UX acceptance remain unverified.
+The GitHub workflow declares **Node 22 on Ubuntu and Windows**, running tests, build and actual Chromium smoke with uploaded screenshots. **Workflow presence is not evidence of Windows execution.** This static-build change was verified locally on Linux Node 22.23.2 and headless Chromium only. Earlier Astro integration passed hosted Ubuntu/Windows checks, but that does not qualify this changed toolchain. Exact-head hosted Ubuntu/Windows CI, physical mobile devices, screen readers and independent rendered UX acceptance remain separate gates.
 
-## Dependency audit — not clean
+## Static tooling and dependency audit
 
-`package-lock.json` is committed; use `npm ci`. The unused unscoped `gpt-3-encoder` dependency was removed after source usage inspection. Existing major versions were retained while refreshing their compatible lock entries (Astro 5.18.2, React 19.3.1; no framework migration). Playwright is a development-only browser-test dependency.
+`package-lock.json` is committed; use `npm ci`. The unnecessary Astro React integration, image/content/schema tooling, Astro configuration and editor integration have been retired. Vite **8.3.5** builds the single React entry to `dist/index.html`; React and React DOM remain **19.3.1**, and the tokenizer is pinned exactly to **1.1.7**. Playwright **1.64.1** is development-only. No forced transitive overrides or `npm audit fix --force` are used.
 
-Measured `npm audit` on 2026-10-26 reported **5 affected packages: 1 critical, 3 high, 1 low**, down from baseline 21 (1 critical, 17 high, 1 moderate, 2 low). These are not suppressed or represented as fixed:
-
-- **Astro (critical aggregate):** includes AVIF image-optimization RCE, reflected/stored XSS and SSRF advisory paths. This app is static-only, has no image optimization inputs, server islands, dynamic slots, view transitions, user-controlled build data, or SSR routes. That narrows this app's exposure, not the upstream advisory's validity.
-- **sharp (high):** native image-library advisories; no application image processing is used.
-- **zod / zod-to-ts (high):** oversized collection validation/resource exhaustion in tooling dependencies; no app validation uses Zod.
-- **esbuild (low):** Windows development-server arbitrary file read advisory; do not expose a dev server to untrusted users.
-
-The registry recommends a major Astro upgrade (7.4.2) to address these dependency chains; that is outside this bounded no-migration change. Do not run `npm audit fix --force` blindly. The workflow runs `npm audit` with visible output as an explicitly **non-gating advisory-report step**; functional tests/build/browser steps remain gating. A green functional workflow must not be called a clean security audit. Re-run `npm audit` for current advisory details before any publication/hosting decision.
+Measured full `npm audit` (including development dependencies) on **2026-10-26** reports **0 vulnerabilities** after clean lock regeneration, versus the prior Astro integration's 5 affected packages. Production-only audit also reports 0. This is a point-in-time registry result, not a claim of absence of all supply-chain or future vulnerabilities. The workflow now gates on visible full `npm audit` output as well as functional tests/build/browser checks. Re-run the audit before publication/hosting decisions. No hosting, deployment, publication or release is included.
